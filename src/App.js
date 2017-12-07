@@ -38,6 +38,7 @@ class App extends Component {
       error: null,
       isLoading: false,
       sortKey: 'NONE',
+      isSortReverse: false,
     };
 
     this.needsToSearchTopStories = this.needsToSearchTopStories.bind(this);
@@ -50,7 +51,8 @@ class App extends Component {
   }
 
   onSort(sortKey) {
-    this.setState({sortKey});
+    const isSortReverse = this.state.sortKey === sortKey && !this.state.isSortReverse;
+    this.setState({sortKey, isSortReverse});
   }
 
   needsToSearchTopStories(searchTerm) {
@@ -129,7 +131,8 @@ class App extends Component {
        searchKey,
        error,
        isLoading,
-       sortKey
+       sortKey,
+       isSortReverse
       } = this.state;
     
     const page = (results && results[searchKey] && results[searchKey].page) || 0;
@@ -156,6 +159,7 @@ class App extends Component {
           : <Table 
               list = {list}
               sortKey = {sortKey}
+              isSortReverse = {isSortReverse}
               onSort={this.onSort}
               onDismiss = {this.onDismiss}
             />
@@ -188,33 +192,65 @@ const Search = ({value, onChange, onSubmit, children }) =>
       </button>
     </form>
 
-Search.propTypes = {
-  value: PropTypes.string,
-  onChange: PropTypes.func.isRequired,
-  onSubmit: PropTypes.func.isRequired,
-  children: PropTypes.node.isRequired,
-}
+const Sort = ({sortKey, onSort, children}) =>
+  <Button onClick={() => onSort(sortKey)} className="button-inline">
+    {children}
+  </Button>
 
 const Table = ({
     list,
     sortKey,
-    onSort, 
+    onSort,
+    isSortReverse, 
     onDismiss
-  }) => 
-  <div className="table">
-    
-  {SORTS[sortKey](list).map(item => 
-    <div key={item.objectID} className="table-row">
-      <span style={largeColumn}><a href={item.url}>{item.title}</a></span>
-      <span style={midColumn}>{item.author}</span>
-      <span style={smallColumn}>{item.num_comments}</span>
-      <span style={smallColumn}>{item.points}</span>
-      <span>
-        <Button onClick={()=> onDismiss(item.objectID)} className="button-inline">Dismiss</Button>
-      </span>
+  }) => {
+    const sortedList = SORTS[sortKey](list);
+    const reverseSortedList = isSortReverse
+      ? sortedList.reverse()
+      : sortedList;
+    return (
+      <div className="table">
+      <div className="table-header">
+        <span style={largeColumn}>
+          <Sort sortKey={'TITLE'} onSort={onSort}> Title </Sort>
+        </span>
+        <span style={midColumn}>
+          <Sort sortKey={'AUTHOR'} onSort={onSort}> Author </Sort>
+        </span>
+        <span style={smallColumn}>
+          <Sort sortKey={'COMMENTS'} onSort={onSort}> Comments </Sort>
+        </span>
+        <span style={smallColumn}>
+          <Sort sortKey={'POINTS'} onSort={onSort}> Points </Sort>
+        </span>
+        <span style={smallColumn}>
+          Archive
+        </span>
+      </div>
+      {reverseSortedList.map(item => 
+        <div key={item.objectID} className="table-row">
+          <span style={largeColumn}><a href={item.url}>{item.title}</a></span>
+          <span style={midColumn}>{item.author}</span>
+          <span style={smallColumn}>{item.num_comments}</span>
+          <span style={smallColumn}>{item.points}</span>
+          <span>
+            <Button onClick={()=> onDismiss(item.objectID)} className="button-inline">Dismiss</Button>
+          </span>
+        </div>
+      )}
     </div>
-  )}
-  </div>
+    )
+  }
+  
+
+const Button = ({onClick, className, children}) =>
+  <button 
+  onClick = {onClick}
+  className = {className}
+  type = "button"
+  > 
+  {children}
+  </button>
 
 Table.propTypes = {
   list: PropTypes.arrayOf(
@@ -229,17 +265,12 @@ Table.propTypes = {
   onDismiss: PropTypes.func.isRequired,
 }
 
-const Button = ({onClick, className, children}) =>
-  <button 
-  onClick = {onClick}
-  className = {className}
-  type = "button"
-  > 
-  {children}
-  </button>
-
-
-
+Search.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  children: PropTypes.node.isRequired,
+}
 
 Button.propTypes = {
   onClick: PropTypes.func.isRequired,
